@@ -16,13 +16,12 @@ void Core::run() {
     timeval tv{0, 0};
     int numFds = select(0, &readers, &writers, nullptr, &tv);
     if (numFds < 0)
-      throw std::runtime_error("error in select call");
+      throw std::runtime_error("failed select call");
 
     for (int i = 0; i < FD_SETSIZE; ++i) {
       auto iter = handlerMap.find(i);
       if (iter == handlerMap.end())
         continue;
-
       if (FD_ISSET(i, &readers))
         iter->second->onReadable(i);
       if (FD_ISSET(i, &writers))
