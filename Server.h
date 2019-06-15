@@ -24,7 +24,7 @@ private:
   void readData(int fd);
 
   struct ConnectionInfo {
-    explicit ConnectionInfo(IConnection *conn) : conn(conn) {}
+    explicit ConnectionInfo(IConnection *conn) : offset(0), conn(conn) {}
 
     int offset;
     std::array<char, 1024> buffer;
