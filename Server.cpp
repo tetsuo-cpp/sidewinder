@@ -9,7 +9,7 @@
 namespace sidewinder {
 
 Server::Server(ICore &core, IServerHandler &handler)
-    : core(core), handler(handler), offset(0) {
+    : core(core), handler(handler) {
   socketFd = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFd < 0)
     throw std::runtime_error("failed socket call");
@@ -19,6 +19,7 @@ Server::Server(ICore &core, IServerHandler &handler)
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
   address.sin_port = htons(7980);
+
   if (bind(socketFd, reinterpret_cast<const sockaddr *>(&address),
            sizeof(address)) < 0)
     throw std::runtime_error("failed bind call");
@@ -34,8 +35,8 @@ Server::Server(ICore &core, IServerHandler &handler)
 }
 
 Server::~Server() {
-  for (const auto fd : fds)
-    close(fd);
+  for (const auto &c : conns)
+    close(c.first);
 
   close(socketFd);
 }
@@ -48,24 +49,26 @@ void Server::onReadable(int fd) {
 }
 
 void Server::readData(int fd) {
-  if (buffer.size() == offset)
-    throw std::runtime_error("buffer filled up");
-
   auto iter = conns.find(fd);
   assert(iter != conns.end());
 
-  const int bytesRead =
-      read(fd, buffer.data() + offset, buffer.size() - offset);
+  auto &connInfo = iter->second;
+
+  if (connInfo.buffer.size() == connInfo.offset)
+    throw std::runtime_error("buffer filled up");
+
+  const int bytesRead = read(fd, connInfo.buffer.data() + connInfo.offset,
+                             connInfo.buffer.size() - connInfo.offset);
   if (bytesRead < 0)
     throw std::runtime_error("read call failed");
 
-  // Buffers need to be maintained per FD. Let's ignore that for now.
-  const bool handled =
-      handler.handleData(buffer.data(), offset + bytesRead, iter->second);
+  const bool handled = handler.handleData(
+      connInfo.buffer.data(), connInfo.offset + bytesRead, connInfo.conn);
+
   if (handled)
-    offset = 0;
+    connInfo.offset = 0;
   else
-    offset += bytesRead;
+    connInfo.offset += bytesRead;
 }
 
 void Server::acceptConnection() {
@@ -73,7 +76,6 @@ void Server::acceptConnection() {
   if (newFd <= 0)
     return;
 
-  fds.push_back(newFd);
   core.registerFd(newFd, this);
 
   auto newConn = std::make_unique<Connection>(newFd, *this);
@@ -83,8 +85,8 @@ void Server::acceptConnection() {
 
 void Server::deregisterConnection(IConnection *conn) {
   auto iter = std::find_if(conns.begin(), conns.end(),
-                           [conn](const std::pair<int, IConnection *> &p) {
-                             return p.second == conn;
+                           [conn](const std::pair<int, ConnectionInfo> &c) {
+                             return c.second.conn == conn;
                            });
 
   conns.erase(iter);

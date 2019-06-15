@@ -23,13 +23,18 @@ private:
   void acceptConnection();
   void readData(int fd);
 
+  struct ConnectionInfo {
+    explicit ConnectionInfo(IConnection *conn) : conn(conn) {}
+
+    int offset;
+    std::array<char, 1024> buffer;
+    IConnection *conn;
+  };
+
   ICore &core;
   IServerHandler &handler;
-  std::array<char, 1024> buffer;
   int socketFd;
-  std::vector<int> fds;
-  int offset;
-  std::unordered_map<int, IConnection *> conns;
+  std::unordered_map<int, ConnectionInfo> conns;
 };
 
 } // namespace sidewinder
