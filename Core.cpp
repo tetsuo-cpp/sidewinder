@@ -1,20 +1,15 @@
-//
-// Created by Alex Cameron on 2019-06-10.
-//
-
 #include "Core.h"
 
 namespace sidewinder {
 
-Core::Core() : stopping(false) {
-  FD_ZERO(&readers);
-  FD_ZERO(&writers);
-}
+Core::Core() : stopping(false), maxFd(-1) { FD_ZERO(&readers); }
 
 void Core::run() {
   while (!stopping) {
-    timeval tv{0, 0};
-    int numFds = select(0, &readers, &writers, nullptr, &tv);
+    timeval tv{1, 0};
+    fd_set readSet = readers;
+
+    int numFds = select(maxFd + 1, &readSet, nullptr, nullptr, &tv);
     if (numFds < 0)
       throw std::runtime_error("failed select call");
 
@@ -22,34 +17,20 @@ void Core::run() {
       auto iter = handlerMap.find(i);
       if (iter == handlerMap.end())
         continue;
-      if (FD_ISSET(i, &readers))
+      if (FD_ISSET(i, &readSet))
         iter->second->onReadable(i);
-      if (FD_ISSET(i, &writers))
-        iter->second->onWriteable(i);
     }
   }
 }
 
-void Core::registerFd(int fd, IFdHandler *handler, FdMode mode) {
-  switch (mode) {
-  case FdMode::FM_Read:
-    FD_SET(fd, &readers);
-    break;
-  case FdMode::FM_Write:
-    FD_SET(fd, &writers);
-    break;
-  case FdMode::FM_ReadWrite:
-    FD_SET(fd, &readers);
-    FD_SET(fd, &writers);
-    break;
-  }
-
+void Core::registerFd(int fd, IFdHandler *handler) {
+  FD_SET(fd, &readers);
   handlerMap.emplace(fd, handler);
+  maxFd = std::max(fd, maxFd);
 }
 
 void Core::deregisterFd(int fd) {
   FD_CLR(fd, &readers);
-  FD_CLR(fd, &writers);
   handlerMap.erase(fd);
 }
 
