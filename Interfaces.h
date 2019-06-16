@@ -33,6 +33,12 @@ public:
   virtual bool handleData(const char *data, int len, IConnection *conn) = 0;
 };
 
+class IClientHandler {
+public:
+  virtual ~IClientHandler() = default;
+  virtual bool handleData(const char *data, int len) = 0;
+};
+
 } // namespace sidewinder
 
 #endif // SIDEWINDER_INTERFACES_H

@@ -35,9 +35,12 @@ Server::Server(ICore &core, IServerHandler &handler)
 }
 
 Server::~Server() {
-  for (const auto &c : conns)
+  for (const auto &c : conns) {
+    core.deregisterFd(c.first);
     close(c.first);
+  }
 
+  core.deregisterFd(socketFd);
   close(socketFd);
 }
 
@@ -59,6 +62,7 @@ void Server::readData(int fd) {
 
   const int bytesRead = read(fd, connInfo.buffer.data() + connInfo.offset,
                              connInfo.buffer.size() - connInfo.offset);
+
   if (bytesRead < 0)
     throw std::runtime_error("read call failed");
 
@@ -89,6 +93,8 @@ void Server::deregisterConnection(IConnection *conn) {
                              return c.second.conn == conn;
                            });
 
+  assert(iter != conns.end());
+  core.deregisterFd(iter->first);
   conns.erase(iter);
 }
 

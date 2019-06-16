@@ -1,4 +1,5 @@
 #include "Connection.h"
+
 #include <sys/socket.h>
 
 namespace sidewinder {
