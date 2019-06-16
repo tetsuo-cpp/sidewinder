@@ -2,6 +2,7 @@
 #define SIDEWINDER_CLIENT_H
 
 #include "Interfaces.h"
+
 #include <array>
 
 namespace sidewinder {

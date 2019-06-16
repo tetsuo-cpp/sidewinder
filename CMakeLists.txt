@@ -9,5 +9,8 @@ set(SIDEWINDER_SOURCES
 
 add_library(sidewinder ${SIDEWINDER_SOURCES})
 
-add_executable(sidewinder_test_server ${SIDEWINDER_SOURCES} TestServer.cpp)
-add_executable(sidewinder_test_client ${SIDEWINDER_SOURCES} TestClient.cpp)
+add_executable(sidewinder_test_server TestServer.cpp)
+target_link_libraries(sidewinder_test_server sidewinder)
+
+add_executable(sidewinder_test_client TestClient.cpp)
+target_link_libraries(sidewinder_test_client sidewinder)

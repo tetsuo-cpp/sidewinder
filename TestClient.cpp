@@ -5,9 +5,9 @@
 #include <string>
 #include <zconf.h>
 
-struct StubHandler : sidewinder::IClientHandler {
+struct StubHandler : public sidewinder::IClientHandler {
   bool handleData(const char *data, int len) override {
-    printf("Received data: %.*s", len, data);
+    printf("Received data: %.*s\n", len, data);
 
     const std::string msg("PING!");
     client->sendData(msg.data(), msg.size());

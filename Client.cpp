@@ -21,6 +21,8 @@ Client::Client(ICore &core, IClientHandler &handler)
   if (connect(socketFd, reinterpret_cast<const sockaddr *>(&address),
               sizeof(address)) < 0)
     throw std::runtime_error("failed connect call");
+
+  core.registerFd(socketFd, this);
 }
 
 Client::~Client() {
