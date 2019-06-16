@@ -83,7 +83,7 @@ void Server::acceptConnection() {
   core.registerFd(newFd, this);
 
   auto newConn = std::make_unique<Connection>(newFd, *this);
-  conns.emplace(newFd, newConn.get());
+  conns.emplace(newFd, ConnectionInfo(newConn.get()));
   handler.onConnection(std::move(newConn));
 }
 
