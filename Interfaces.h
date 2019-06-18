@@ -1,9 +1,16 @@
 #ifndef SIDEWINDER_INTERFACES_H
 #define SIDEWINDER_INTERFACES_H
 
+#include <chrono>
+#include <functional>
 #include <memory>
 
 namespace sidewinder {
+
+struct Alarm {
+  std::function<void *()> func;
+  std::chrono::system_clock::time_point time;
+};
 
 class IFdHandler {
 public:
@@ -17,6 +24,7 @@ public:
   virtual void run() = 0;
   virtual void registerFd(int fd, IFdHandler *handler) = 0;
   virtual void deregisterFd(int fd) = 0;
+  virtual void setAlarm(const Alarm &alarm) = 0;
   virtual void stop() = 0;
 };
 

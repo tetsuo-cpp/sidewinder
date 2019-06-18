@@ -5,6 +5,7 @@
 
 #include <sys/select.h>
 #include <unordered_map>
+#include <vector>
 
 namespace sidewinder {
 
@@ -16,13 +17,17 @@ public:
   void run() override;
   void registerFd(int fd, IFdHandler *handler) override;
   void deregisterFd(int fd) override;
+  void setAlarm(const Alarm &alarm) override;
   void stop() override;
 
 private:
+  void serviceAlarms();
+
   bool stopping;
   fd_set readers;
   std::unordered_map<int, IFdHandler *> handlerMap;
   int maxFd;
+  std::vector<Alarm> alarms;
 };
 
 } // namespace sidewinder

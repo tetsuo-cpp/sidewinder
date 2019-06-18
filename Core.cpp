@@ -6,12 +6,17 @@ Core::Core() : stopping(false), maxFd(-1) { FD_ZERO(&readers); }
 
 void Core::run() {
   while (!stopping) {
-    timeval tv{1, 0};
+    timeval tv{0, 0};
     fd_set readSet = readers;
 
     int numFds = select(maxFd + 1, &readSet, nullptr, nullptr, &tv);
     if (numFds < 0)
       throw std::runtime_error("failed select call");
+
+    if (numFds == 0) {
+      serviceAlarms();
+      continue;
+    }
 
     for (int i = 0; i < FD_SETSIZE; ++i) {
       auto iter = handlerMap.find(i);
@@ -34,6 +39,16 @@ void Core::deregisterFd(int fd) {
   handlerMap.erase(fd);
 }
 
+void Core::setAlarm(const Alarm &alarm) { alarms.push_back(alarm); }
+
 void Core::stop() { stopping = true; }
+
+void Core::serviceAlarms() {
+  const auto now = std::chrono::system_clock::now();
+  for (const auto &alarm : alarms) {
+    if (now <= alarm.time)
+      alarm.func();
+  }
+}
 
 } // namespace sidewinder
