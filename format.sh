@@ -6,4 +6,4 @@ if [ "$current_dir" != "sidewinder" ]; then
     exit 1
 fi
 
-find . \( -name "*.cpp" -o -name "*.h" \) -a -not -path "./external/*" -a -not -path "./CMakeFiles/*" | xargs clang-format -i
+git ls-files | grep ".*\.\(cpp\|h\)" | xargs clang-format -i

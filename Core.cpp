@@ -12,7 +12,6 @@ void Core::run() {
     int numFds = select(maxFd + 1, &readSet, nullptr, nullptr, &tv);
     if (numFds < 0)
       throw std::runtime_error("failed select call");
-
     if (numFds == 0) {
       serviceAlarms();
       continue;
@@ -39,16 +38,26 @@ void Core::deregisterFd(int fd) {
   handlerMap.erase(fd);
 }
 
-void Core::setAlarm(const Alarm &alarm) { alarms.push_back(alarm); }
+void Core::registerAlarm(const Alarm *alarm) { alarms.push_back(alarm); }
+
+void Core::deregisterAlarm(const Alarm *alarm) {
+  alarms.erase(std::remove(alarms.begin(), alarms.end(), alarm), alarms.end());
+}
 
 void Core::stop() { stopping = true; }
 
 void Core::serviceAlarms() {
   const auto now = std::chrono::system_clock::now();
   for (const auto &alarm : alarms) {
-    if (now <= alarm.time)
-      alarm.func();
+    if (now <= alarm->time)
+      alarm->func();
   }
+
+  // Get rid of anything that triggered.
+  alarms.erase(
+      std::remove_if(alarms.begin(), alarms.end(),
+                     [now](const Alarm *alarm) { return now <= alarm->time; }),
+      alarms.end());
 }
 
 } // namespace sidewinder

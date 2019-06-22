@@ -1,5 +1,6 @@
 #include "Core.h"
 #include "Server.h"
+#include "Timer.h"
 
 #include <string>
 #include <zconf.h>
@@ -16,7 +17,6 @@ struct StubHandler : public sidewinder::IServerHandler {
     const std::string msg("PONG!");
     conn->sendData(msg.data(), msg.size());
 
-    sleep(1);
     return true;
   }
 
@@ -27,5 +27,7 @@ int main(int argc, char **argv) {
   sidewinder::Core core;
   StubHandler handler;
   sidewinder::Server server(core, handler);
+  sidewinder::Timer timer([]() { printf("testing\n"); },
+                          std::chrono::seconds(5), core);
   core.run();
 }

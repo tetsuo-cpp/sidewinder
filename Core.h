@@ -17,7 +17,8 @@ public:
   void run() override;
   void registerFd(int fd, IFdHandler *handler) override;
   void deregisterFd(int fd) override;
-  void setAlarm(const Alarm &alarm) override;
+  void registerAlarm(const Alarm *alarm) override;
+  void deregisterAlarm(const Alarm *alarm) override;
   void stop() override;
 
 private:
@@ -27,7 +28,7 @@ private:
   fd_set readers;
   std::unordered_map<int, IFdHandler *> handlerMap;
   int maxFd;
-  std::vector<Alarm> alarms;
+  std::vector<const Alarm *> alarms;
 };
 
 } // namespace sidewinder

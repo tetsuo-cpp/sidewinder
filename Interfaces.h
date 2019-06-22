@@ -8,7 +8,7 @@
 namespace sidewinder {
 
 struct Alarm {
-  std::function<void *()> func;
+  std::function<void()> func;
   std::chrono::system_clock::time_point time;
 };
 
@@ -24,7 +24,8 @@ public:
   virtual void run() = 0;
   virtual void registerFd(int fd, IFdHandler *handler) = 0;
   virtual void deregisterFd(int fd) = 0;
-  virtual void setAlarm(const Alarm &alarm) = 0;
+  virtual void registerAlarm(const Alarm *alarm) = 0;
+  virtual void deregisterAlarm(const Alarm *alarm) = 0;
   virtual void stop() = 0;
 };
 
