@@ -49,14 +49,14 @@ void Core::stop() { stopping = true; }
 void Core::serviceAlarms() {
   const auto now = std::chrono::system_clock::now();
   for (const auto &alarm : alarms) {
-    if (now <= alarm->time)
+    if (now >= alarm->time)
       alarm->func();
   }
 
   // Get rid of anything that triggered.
   alarms.erase(
       std::remove_if(alarms.begin(), alarms.end(),
-                     [now](const Alarm *alarm) { return now <= alarm->time; }),
+                     [now](const Alarm *alarm) { return now >= alarm->time; }),
       alarms.end());
 }
 
