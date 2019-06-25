@@ -27,7 +27,7 @@ void Server::init() {
   if (socketFd < 0)
     throw std::runtime_error("failed socket call");
 
-  auto sockAddr = addr.getSockAddrIn();
+  const auto sockAddr = addr.getSockAddrIn();
   if (bind(socketFd, reinterpret_cast<const sockaddr *>(&sockAddr),
            sizeof(sockAddr)) < 0)
     throw std::runtime_error("failed bind call");

@@ -3,6 +3,7 @@
 
 #include "Address.h"
 #include "Interfaces.h"
+#include "Timer.h"
 
 #include <array>
 
@@ -20,12 +21,15 @@ public:
   void sendData(const char *data, int len);
 
 private:
+  void attemptConnect();
+
   ICore &core;
   IClientHandler &handler;
   const Address addr;
   int socketFd;
   std::array<char, 1024> buffer;
   int offset;
+  std::unique_ptr<Timer> connectTimer;
 };
 
 } // namespace sidewinder

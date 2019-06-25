@@ -26,9 +26,5 @@ int main(int argc, char **argv) {
   sidewinder::Client client(core, handler, address);
   handler.client = &client;
   client.init();
-
-  // Begin the ping-pong.
-  const std::string msg("INIT!");
-  client.sendData(msg.data(), msg.size());
   core.run();
 }

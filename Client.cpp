@@ -8,11 +8,13 @@
 namespace sidewinder {
 
 Client::Client(ICore &core, IClientHandler &handler, Address addr)
-    : core(core), handler(handler), addr(std::move(addr)), offset(0) {}
+    : core(core), handler(handler), addr(std::move(addr)), socketFd(-1),
+      offset(0) {}
 
 Client::~Client() {
   core.deregisterFd(socketFd);
-  close(socketFd);
+  if (socketFd > 0)
+    close(socketFd);
 }
 
 void Client::init() {
@@ -20,12 +22,19 @@ void Client::init() {
   if (socketFd < 0)
     throw std::runtime_error("failed socket call");
 
-  auto sockAddr = addr.getSockAddrIn();
+  connectTimer = std::make_unique<Timer>([this]() { attemptConnect(); },
+                                         std::chrono::seconds(5), core);
+}
+
+void Client::attemptConnect() {
+  const auto sockAddr = addr.getSockAddrIn();
   if (connect(socketFd, reinterpret_cast<const sockaddr *>(&sockAddr),
               sizeof(sockAddr)) < 0)
-    throw std::runtime_error("failed connect call");
+    return;
 
   core.registerFd(socketFd, this);
+  assert(connectTimer);
+  connectTimer->stop();
 }
 
 void Client::onReadable(int fd) {
@@ -38,7 +47,6 @@ void Client::onReadable(int fd) {
     throw std::runtime_error("read call failed");
 
   const bool handled = handler.handleData(buffer.data(), offset + bytesRead);
-
   if (handled)
     offset = 0;
   else

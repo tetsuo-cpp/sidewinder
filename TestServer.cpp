@@ -7,6 +7,8 @@
 
 struct StubHandler : public sidewinder::IServerHandler {
   void onConnection(std::unique_ptr<sidewinder::IConnection> conn) override {
+    const std::string msg("INIT_FROM_SERVER!");
+    conn->sendData(msg.data(), msg.size());
     conns.push_back(std::move(conn));
   }
 
