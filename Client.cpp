@@ -18,15 +18,15 @@ Client::~Client() {
 }
 
 void Client::init() {
-  socketFd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socketFd < 0)
-    throw std::runtime_error("failed socket call");
-
   connectTimer = std::make_unique<Timer>([this]() { attemptConnect(); },
                                          std::chrono::seconds(5), core);
 }
 
 void Client::attemptConnect() {
+  socketFd = socket(AF_INET, SOCK_STREAM, 0);
+  if (socketFd < 0)
+    return;
+
   const auto sockAddr = addr.getSockAddrIn();
   if (connect(socketFd, reinterpret_cast<const sockaddr *>(&sockAddr),
               sizeof(sockAddr)) < 0)
@@ -42,7 +42,9 @@ void Client::onReadable(int fd) {
   if (offset == buffer.size())
     throw std::runtime_error("buffer filled up");
 
-  int bytesRead = read(fd, buffer.data() + offset, buffer.size() - offset);
+  const int bytesRead =
+      read(fd, buffer.data() + offset, buffer.size() - offset);
+
   if (bytesRead < 0)
     throw std::runtime_error("read call failed");
 

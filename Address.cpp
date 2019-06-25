@@ -1,4 +1,5 @@
 #include "Address.h"
+
 #include <arpa/inet.h>
 
 namespace sidewinder {
