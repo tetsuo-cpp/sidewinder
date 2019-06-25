@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(SIDEWINDER_SOURCES
         Core.cpp Core.h Interfaces.h Server.cpp Server.h
         Connection.cpp Connection.h Client.cpp Client.h
-        Timer.cpp Timer.h)
+        Timer.cpp Timer.h Address.cpp Address.h)
 
 add_library(sidewinder ${SIDEWINDER_SOURCES})
 

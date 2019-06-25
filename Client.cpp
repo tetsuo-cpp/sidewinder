@@ -7,28 +7,25 @@
 
 namespace sidewinder {
 
-Client::Client(ICore &core, IClientHandler &handler)
-    : core(core), handler(handler), offset(0) {
-  socketFd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socketFd < 0)
-    throw std::runtime_error("failed socket call");
-
-  sockaddr_in address;
-  memset(&address, 0, sizeof(address));
-  address.sin_family = AF_INET;
-  address.sin_addr.s_addr = inet_addr("127.0.0.1");
-  address.sin_port = htons(7980);
-
-  if (connect(socketFd, reinterpret_cast<const sockaddr *>(&address),
-              sizeof(address)) < 0)
-    throw std::runtime_error("failed connect call");
-
-  core.registerFd(socketFd, this);
-}
+Client::Client(ICore &core, IClientHandler &handler, Address addr)
+    : core(core), handler(handler), addr(std::move(addr)), offset(0) {}
 
 Client::~Client() {
   core.deregisterFd(socketFd);
   close(socketFd);
+}
+
+void Client::init() {
+  socketFd = socket(AF_INET, SOCK_STREAM, 0);
+  if (socketFd < 0)
+    throw std::runtime_error("failed socket call");
+
+  auto sockAddr = addr.getSockAddrIn();
+  if (connect(socketFd, reinterpret_cast<const sockaddr *>(&sockAddr),
+              sizeof(sockAddr)) < 0)
+    throw std::runtime_error("failed connect call");
+
+  core.registerFd(socketFd, this);
 }
 
 void Client::onReadable(int fd) {

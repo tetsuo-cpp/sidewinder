@@ -22,8 +22,10 @@ struct StubHandler : public sidewinder::IClientHandler {
 int main(int argc, char **argv) {
   sidewinder::Core core;
   StubHandler handler;
-  sidewinder::Client client(core, handler);
+  sidewinder::Address address("127.0.0.1", 7980);
+  sidewinder::Client client(core, handler, address);
   handler.client = &client;
+  client.init();
 
   // Begin the ping-pong.
   const std::string msg("INIT!");

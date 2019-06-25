@@ -26,8 +26,10 @@ struct StubHandler : public sidewinder::IServerHandler {
 int main(int argc, char **argv) {
   sidewinder::Core core;
   StubHandler handler;
-  sidewinder::Server server(core, handler);
+  sidewinder::Address address(7980);
+  sidewinder::Server server(core, handler, address);
   sidewinder::Timer timer([]() { printf("testing\n"); },
                           std::chrono::seconds(5), core);
+  server.init();
   core.run();
 }

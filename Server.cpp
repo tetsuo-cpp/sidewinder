@@ -8,20 +8,28 @@
 
 namespace sidewinder {
 
-Server::Server(ICore &core, IServerHandler &handler)
-    : core(core), handler(handler) {
+Server::Server(ICore &core, IServerHandler &handler, Address addr)
+    : core(core), handler(handler), addr(std::move(addr)), socketFd(-1) {}
+
+Server::~Server() {
+  for (const auto &c : conns) {
+    core.deregisterFd(c.first);
+    close(c.first);
+  }
+
+  core.deregisterFd(socketFd);
+  if (socketFd > 0)
+    close(socketFd);
+}
+
+void Server::init() {
   socketFd = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFd < 0)
     throw std::runtime_error("failed socket call");
 
-  sockaddr_in address;
-  memset(&address, 0, sizeof(address));
-  address.sin_family = AF_INET;
-  address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(7980);
-
-  if (bind(socketFd, reinterpret_cast<const sockaddr *>(&address),
-           sizeof(address)) < 0)
+  auto sockAddr = addr.getSockAddrIn();
+  if (bind(socketFd, reinterpret_cast<const sockaddr *>(&sockAddr),
+           sizeof(sockAddr)) < 0)
     throw std::runtime_error("failed bind call");
 
   if (listen(socketFd, 10) < 0)
@@ -32,16 +40,6 @@ Server::Server(ICore &core, IServerHandler &handler)
   fcntl(socketFd, F_SETFL, fdFlags | O_NONBLOCK);
 
   core.registerFd(socketFd, this);
-}
-
-Server::~Server() {
-  for (const auto &c : conns) {
-    core.deregisterFd(c.first);
-    close(c.first);
-  }
-
-  core.deregisterFd(socketFd);
-  close(socketFd);
 }
 
 void Server::onReadable(int fd) {
