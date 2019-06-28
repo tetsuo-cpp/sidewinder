@@ -16,15 +16,16 @@ struct StubHandler : public sidewinder::IClientHandler {
     return true;
   }
 
-  sidewinder::Client *client;
+  sidewinder::Client *client = nullptr;
 };
 
 int main(int argc, char **argv) {
   sidewinder::Core core;
   StubHandler handler;
   sidewinder::Address address("127.0.0.1", 7980);
-  sidewinder::Client client(core, handler, address);
+  sidewinder::ClientConfig config;
+  sidewinder::Client client(core, handler, address, config);
   handler.client = &client;
-  client.init();
+  client.start();
   core.run();
 }

@@ -5,19 +5,27 @@
 #include "Interfaces.h"
 #include "Timer.h"
 
-#include <array>
+#include <vector>
 
 namespace sidewinder {
 
+struct ClientConfig {
+  int maxRetries = 0;
+  int reconnectInterval = 1;
+  size_t bufSize = 1024;
+};
+
 class Client : public IFdHandler {
 public:
-  Client(ICore &core, IClientHandler &handler, Address addr);
+  Client(ICore &core, IClientHandler &handler, Address addr,
+         const ClientConfig &config);
   virtual ~Client();
 
   // IFdHandler impl.
   void onReadable(int fd) override;
 
-  void init();
+  void start();
+  void stop();
   void sendData(const char *data, int len);
 
 private:
@@ -26,10 +34,12 @@ private:
   ICore &core;
   IClientHandler &handler;
   const Address addr;
+  const ClientConfig config;
   int socketFd;
-  std::array<char, 1024> buffer;
+  std::vector<char> buffer;
   int offset;
   std::unique_ptr<Timer> connectTimer;
+  int numRetries;
 };
 
 } // namespace sidewinder

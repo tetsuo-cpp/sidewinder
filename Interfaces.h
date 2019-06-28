@@ -35,17 +35,24 @@ public:
   virtual void sendData(const char *data, int len) = 0;
 };
 
+enum class ServerError { ReadFailed, BufferReset };
+
 class IServerHandler {
 public:
   virtual ~IServerHandler() = default;
   virtual void onConnection(std::unique_ptr<IConnection> conn) = 0;
+  virtual void onDisconnection(IConnection *conn) = 0;
   virtual bool handleData(const char *data, int len, IConnection *conn) = 0;
+  virtual void onError(ServerError, const std::string &) {}
 };
+
+enum class ClientError { ReadFailed, RetriesExhausted, BufferReset };
 
 class IClientHandler {
 public:
   virtual ~IClientHandler() = default;
   virtual bool handleData(const char *data, int len) = 0;
+  virtual void onError(ClientError, const std::string &) {}
 };
 
 } // namespace sidewinder

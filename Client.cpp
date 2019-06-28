@@ -1,28 +1,41 @@
 #include "Client.h"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <zconf.h>
 
 namespace sidewinder {
 
-Client::Client(ICore &core, IClientHandler &handler, Address addr)
-    : core(core), handler(handler), addr(std::move(addr)), socketFd(-1),
-      offset(0) {}
+Client::Client(ICore &core, IClientHandler &handler, Address addr,
+               const ClientConfig &config)
+    : core(core), handler(handler), addr(std::move(addr)), config(config),
+      socketFd(-1), offset(0), numRetries(0) {
+  buffer.resize(config.bufSize, 0);
+}
 
-Client::~Client() {
+Client::~Client() { stop(); }
+
+void Client::start() {
+  connectTimer = std::make_unique<Timer>(
+      [this]() { attemptConnect(); },
+      std::chrono::seconds(config.reconnectInterval), core);
+  connectTimer->set();
+}
+
+void Client::stop() {
   core.deregisterFd(socketFd);
   if (socketFd > 0)
     close(socketFd);
-}
-
-void Client::init() {
-  connectTimer = std::make_unique<Timer>([this]() { attemptConnect(); },
-                                         std::chrono::seconds(5), core);
+  if (connectTimer)
+    connectTimer->unset();
 }
 
 void Client::attemptConnect() {
+  if (config.maxRetries != 0 && numRetries++ > config.maxRetries) {
+    handler.onError(ClientError::RetriesExhausted, "retries exhausted");
+    connectTimer->unset();
+    return;
+  }
+
   socketFd = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFd < 0)
     return;
@@ -34,19 +47,23 @@ void Client::attemptConnect() {
 
   core.registerFd(socketFd, this);
   assert(connectTimer);
-  connectTimer->stop();
+  connectTimer->unset();
 }
 
 void Client::onReadable(int fd) {
   assert(fd == socketFd);
-  if (offset == buffer.size())
-    throw std::runtime_error("buffer filled up");
+  if (offset == buffer.size()) {
+    handler.onError(ClientError::BufferReset, "buffer filled up");
+    offset = 0;
+  }
 
   const int bytesRead =
-      read(fd, buffer.data() + offset, buffer.size() - offset);
+      recv(fd, buffer.data() + offset, buffer.size() - offset, 0);
 
-  if (bytesRead < 0)
-    throw std::runtime_error("read call failed");
+  if (bytesRead < 0) {
+    handler.onError(ClientError::ReadFailed, "failed read call");
+    return;
+  }
 
   const bool handled = handler.handleData(buffer.data(), offset + bytesRead);
   if (handled)
@@ -56,9 +73,17 @@ void Client::onReadable(int fd) {
 }
 
 void Client::sendData(const char *data, int len) {
-  int bytesSent = send(socketFd, data, len, 0);
-  if (bytesSent < 0)
-    throw std::runtime_error("send call failed");
+  int totalBytesSent = 0;
+  int numAttempts = 0;
+  // Sends can get interrupted so we need to try repeatedly.
+  while (totalBytesSent < len) {
+    int bytesSent = send(socketFd, data, len, 0);
+    if (bytesSent < 0)
+      throw std::runtime_error("failed send call");
+    totalBytesSent += bytesSent;
+    if (++numAttempts > 5)
+      throw std::runtime_error("repeatedly failed to send");
+  }
 }
 
 } // namespace sidewinder

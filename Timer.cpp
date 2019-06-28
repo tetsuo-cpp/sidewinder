@@ -2,14 +2,27 @@
 
 namespace sidewinder {
 
-Timer::~Timer() { stop(); }
+Timer::~Timer() { unset(); }
 
-void Timer::onTimer() {
+void Timer::onTick() {
   func();
-  alarm.time += interval;
+  isSetVal = false;
+  set();
+}
+
+void Timer::set() {
+  if (isSetVal)
+    return;
+  isSetVal = true;
+
+  // Set the alarm to go off at the next interval.
+  alarm.time = std::chrono::system_clock::now() + interval;
   core.registerAlarm(&alarm);
 }
 
-void Timer::stop() { core.deregisterAlarm(&alarm); }
+void Timer::unset() {
+  isSetVal = false;
+  core.deregisterAlarm(&alarm);
+}
 
 } // namespace sidewinder

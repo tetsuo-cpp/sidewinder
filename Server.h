@@ -4,21 +4,26 @@
 #include "Address.h"
 #include "Interfaces.h"
 
-#include <array>
 #include <unordered_map>
 #include <vector>
 
 namespace sidewinder {
 
+struct ServerConfig {
+  size_t bufSize = 1024;
+};
+
 class Server : public IFdHandler {
 public:
-  Server(ICore &core, IServerHandler &handler, Address addr);
+  Server(ICore &core, IServerHandler &handler, Address addr,
+         const ServerConfig &config);
   virtual ~Server();
 
   // IFdHandler impl.
   void onReadable(int fd) override;
 
-  void init();
+  void start();
+  void stop();
   void deregisterConnection(IConnection *conn);
 
 private:
@@ -26,16 +31,19 @@ private:
   void readData(int fd);
 
   struct ConnectionInfo {
-    explicit ConnectionInfo(IConnection *conn) : offset(0), conn(conn) {}
+    ConnectionInfo(IConnection *conn, size_t bufSize) : offset(0), conn(conn) {
+      buffer.resize(bufSize, 0);
+    }
 
     int offset;
-    std::array<char, 1024> buffer;
+    std::vector<char> buffer;
     IConnection *conn;
   };
 
   ICore &core;
   IServerHandler &handler;
   const Address addr;
+  const ServerConfig config;
   int socketFd;
   std::unordered_map<int, ConnectionInfo> conns;
 };

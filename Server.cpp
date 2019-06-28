@@ -2,27 +2,19 @@
 #include "Connection.h"
 
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 namespace sidewinder {
 
-Server::Server(ICore &core, IServerHandler &handler, Address addr)
-    : core(core), handler(handler), addr(std::move(addr)), socketFd(-1) {}
+Server::Server(ICore &core, IServerHandler &handler, Address addr,
+               const ServerConfig &config)
+    : core(core), handler(handler), addr(std::move(addr)), config(config),
+      socketFd(-1) {}
 
-Server::~Server() {
-  for (const auto &c : conns) {
-    core.deregisterFd(c.first);
-    close(c.first);
-  }
+Server::~Server() { stop(); }
 
-  core.deregisterFd(socketFd);
-  if (socketFd > 0)
-    close(socketFd);
-}
-
-void Server::init() {
+void Server::start() {
   socketFd = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFd < 0)
     throw std::runtime_error("failed socket call");
@@ -42,6 +34,21 @@ void Server::init() {
   core.registerFd(socketFd, this);
 }
 
+void Server::stop() {
+  for (const auto &c : conns) {
+    core.deregisterFd(c.first);
+    close(c.first);
+  }
+
+  conns.clear();
+
+  core.deregisterFd(socketFd);
+  if (socketFd > 0) {
+    close(socketFd);
+    socketFd = -1;
+  }
+}
+
 void Server::onReadable(int fd) {
   if (fd == socketFd)
     acceptConnection();
@@ -55,14 +62,21 @@ void Server::readData(int fd) {
 
   auto &connInfo = iter->second;
 
-  if (connInfo.buffer.size() == connInfo.offset)
-    throw std::runtime_error("buffer filled up");
+  if (connInfo.buffer.size() == connInfo.offset) {
+    handler.onError(ServerError::BufferReset, "buffer filled up");
+    connInfo.offset = 0;
+  }
 
-  const int bytesRead = read(fd, connInfo.buffer.data() + connInfo.offset,
-                             connInfo.buffer.size() - connInfo.offset);
+  const int bytesRead = recv(fd, connInfo.buffer.data() + connInfo.offset,
+                             connInfo.buffer.size() - connInfo.offset, 0);
 
-  if (bytesRead < 0)
-    throw std::runtime_error("read call failed");
+  if (bytesRead < 0) {
+    handler.onError(ServerError::ReadFailed, "failed read call");
+    return;
+  } else if (bytesRead == 0) {
+    handler.onDisconnection(connInfo.conn);
+    return;
+  }
 
   const bool handled = handler.handleData(
       connInfo.buffer.data(), connInfo.offset + bytesRead, connInfo.conn);
@@ -81,7 +95,7 @@ void Server::acceptConnection() {
   core.registerFd(newFd, this);
 
   auto newConn = std::make_unique<Connection>(newFd, *this);
-  conns.emplace(newFd, ConnectionInfo(newConn.get()));
+  conns.emplace(newFd, ConnectionInfo(newConn.get(), config.bufSize));
   handler.onConnection(std::move(newConn));
 }
 

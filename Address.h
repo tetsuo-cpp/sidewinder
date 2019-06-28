@@ -18,4 +18,4 @@ struct Address {
 
 } // namespace sidewinder
 
-#endif //SIDEWINDER_ADDRESS_H
+#endif // SIDEWINDER_ADDRESS_H

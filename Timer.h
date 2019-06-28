@@ -9,23 +9,23 @@ class Timer {
 public:
   template <typename T>
   Timer(T &&func, std::chrono::system_clock::duration interval, ICore &core)
-      : func(std::forward<T>(func)), interval(interval), core(core) {
-    // Set the alarm to go off at the next interval.
-    alarm.func = [this]() { onTimer(); };
-    alarm.time = std::chrono::system_clock::now() + interval;
-    core.registerAlarm(&alarm);
+      : func(std::forward<T>(func)), interval(interval), core(core),
+        isSetVal(false) {
+    alarm.func = [this]() { onTick(); };
   }
-
   virtual ~Timer();
 
-  void onTimer();
-  void stop();
+  void set();
+  void unset();
 
 private:
+  void onTick();
+
   const std::function<void()> func;
   const std::chrono::system_clock::duration interval;
   ICore &core;
   Alarm alarm;
+  bool isSetVal;
 };
 
 } // namespace sidewinder
