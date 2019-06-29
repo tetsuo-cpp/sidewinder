@@ -51,6 +51,8 @@ enum class ClientError { ReadFailed, RetriesExhausted, BufferReset };
 class IClientHandler {
 public:
   virtual ~IClientHandler() = default;
+  virtual void onConnection() = 0;
+  virtual void onDisconnection() = 0;
   virtual bool handleData(const char *data, int len) = 0;
   virtual void onError(ClientError, const std::string &) {}
 };

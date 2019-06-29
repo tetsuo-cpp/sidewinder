@@ -48,6 +48,7 @@ void Client::attemptConnect() {
   core.registerFd(socketFd, this);
   assert(connectTimer);
   connectTimer->unset();
+  handler.onConnection();
 }
 
 void Client::onReadable(int fd) {
@@ -62,6 +63,10 @@ void Client::onReadable(int fd) {
 
   if (bytesRead < 0) {
     handler.onError(ClientError::ReadFailed, "failed read call");
+    return;
+  } else if (bytesRead == 0) {
+    core.deregisterFd(fd);
+    handler.onDisconnection();
     return;
   }
 
@@ -81,7 +86,7 @@ void Client::sendData(const char *data, int len) {
     if (bytesSent < 0)
       throw std::runtime_error("failed send call");
     totalBytesSent += bytesSent;
-    if (++numAttempts > 5)
+    if (++numAttempts > config.sendRetries)
       throw std::runtime_error("repeatedly failed to send");
   }
 }

@@ -6,6 +6,9 @@
 #include <zconf.h>
 
 struct StubHandler : public sidewinder::IClientHandler {
+  void onConnection() override { printf("Successfully connected.\n"); }
+  void onDisconnection() override { printf("Disconnected.\n"); }
+
   bool handleData(const char *data, int len) override {
     printf("Received data: %.*s\n", len, data);
 

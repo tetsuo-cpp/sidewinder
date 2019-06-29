@@ -11,6 +11,7 @@ namespace sidewinder {
 
 struct ServerConfig {
   size_t bufSize = 1024;
+  int sendRetries;
 };
 
 class Server : public IFdHandler {

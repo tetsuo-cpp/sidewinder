@@ -8,7 +8,7 @@ namespace sidewinder {
 
 class Connection : public IConnection {
 public:
-  Connection(int fd, Server &server);
+  Connection(int fd, Server &server, int sendRetries);
   virtual ~Connection();
 
   void sendData(const char *data, int len) override;
@@ -16,6 +16,7 @@ public:
 private:
   int fd;
   Server &server;
+  int sendRetries;
 };
 
 } // namespace sidewinder

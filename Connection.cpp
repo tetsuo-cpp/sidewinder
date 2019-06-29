@@ -4,7 +4,8 @@
 
 namespace sidewinder {
 
-Connection::Connection(int fd, Server &server) : fd(fd), server(server) {}
+Connection::Connection(int fd, Server &server, int sendRetries)
+    : fd(fd), server(server), sendRetries(sendRetries) {}
 
 Connection::~Connection() { server.deregisterConnection(this); }
 
@@ -17,7 +18,7 @@ void Connection::sendData(const char *data, int len) {
     if (bytesSent < 0)
       throw std::runtime_error("failed send call");
     totalBytesSent += bytesSent;
-    if (++numAttempts > 5)
+    if (++numAttempts > sendRetries)
       throw std::runtime_error("repeatedly failed to send");
   }
 }

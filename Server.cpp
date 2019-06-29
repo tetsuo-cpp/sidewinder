@@ -74,6 +74,7 @@ void Server::readData(int fd) {
     handler.onError(ServerError::ReadFailed, "failed read call");
     return;
   } else if (bytesRead == 0) {
+    core.deregisterFd(fd);
     handler.onDisconnection(connInfo.conn);
     return;
   }
@@ -94,7 +95,7 @@ void Server::acceptConnection() {
 
   core.registerFd(newFd, this);
 
-  auto newConn = std::make_unique<Connection>(newFd, *this);
+  auto newConn = std::make_unique<Connection>(newFd, *this, config.sendRetries);
   conns.emplace(newFd, ConnectionInfo(newConn.get(), config.bufSize));
   handler.onConnection(std::move(newConn));
 }

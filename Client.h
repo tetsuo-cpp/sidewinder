@@ -13,6 +13,7 @@ struct ClientConfig {
   int maxRetries = 0;
   int reconnectInterval = 1;
   size_t bufSize = 1024;
+  int sendRetries = 5;
 };
 
 class Client : public IFdHandler {
