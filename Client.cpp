@@ -81,11 +81,13 @@ void Client::sendData(const char *data, int len) {
   int totalBytesSent = 0;
   int numAttempts = 0;
   // Sends can get interrupted so we need to try repeatedly.
-  while (totalBytesSent < len) {
+  while (true) {
     int bytesSent = send(socketFd, data, len, 0);
     if (bytesSent < 0)
       throw std::runtime_error("failed send call");
     totalBytesSent += bytesSent;
+    if (totalBytesSent >= len)
+      break;
     if (++numAttempts > config.sendRetries)
       throw std::runtime_error("repeatedly failed to send");
   }
